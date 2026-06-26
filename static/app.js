@@ -219,9 +219,11 @@ function renderWhatif() {
   list.innerHTML = "";
   (STATE.remaining_matches || []).forEach((m) => {
     const wi = el("div", "wi");
+    const md = m.date ? `<span class="wdate">${m.date.slice(5)}</span>` : "";
     wi.innerHTML =
       `<span class="gtag">${m.group}조</span>` +
-      `<span class="match">${m.home} <b>vs</b> ${m.away}</span>`;
+      `<span class="match">${m.home} <b>vs</b> ${m.away}</span>` +
+      md;
     const sel = el("select");
     sel.dataset.id = m.id;
     sel.innerHTML =

@@ -13,6 +13,7 @@ import time
 from flask import Flask, jsonify, render_template, request
 
 from worldcup import scenarios as SC
+from worldcup import standings as ST
 from worldcup.fifa_client import load_matches
 from worldcup.standings import all_group_tables, group_complete
 
@@ -58,6 +59,8 @@ def _build_state(data: dict, run_mc: bool = True) -> dict:
         },
         "analysis": analysis,
         "bingo": SC.bingo_board(matches),
+        # What-if 대상 = 아직 '결과가 확정되지 않은' 경기만 (엔진의 미결정 정의와 일치).
+        # 종료 경기는 물론, 점수가 들어간 진행중(live) 경기도 제외 → 잔여경기만 남음.
         "remaining_matches": [
             {
                 "id": m["id"],
@@ -67,8 +70,8 @@ def _build_state(data: dict, run_mc: bool = True) -> dict:
                 "away": m["away"]["name"],
                 "status": m["status"],
             }
-            for m in matches
-            if m["status"] != "finished"
+            for m in sorted(matches, key=lambda x: (x["date"] or "9999", x["group"]))
+            if not ST._is_final(m)
         ],
     }
     if run_mc:
