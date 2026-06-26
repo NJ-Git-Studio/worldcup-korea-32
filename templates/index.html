@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🇰🇷 월드컵 2026 한국 32강 진출 경우의 수</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="flag">🇰🇷</span>
+      <div>
+        <h1>월드컵 2026 · 한국 32강 진출 경우의 수</h1>
+        <div class="sub" id="metaLine">데이터 불러오는 중…</div>
+      </div>
+    </div>
+    <div class="actions">
+      <button id="refreshBtn" class="btn">🔄 최신 데이터 갱신</button>
+    </div>
+  </header>
+
+  <main id="app">
+    <!-- 판정 히어로 -->
+    <section class="hero" id="hero">
+      <div class="verdict" id="verdictBox">
+        <div class="verdict-badge" id="verdictBadge">…</div>
+        <p class="verdict-text" id="verdictText"></p>
+      </div>
+      <div class="gauge-wrap">
+        <div class="gauge" id="gauge">
+          <div class="gauge-num" id="gaugeNum">–</div>
+          <div class="gauge-label">진출 확률<br/><small id="gaugeSub">(몬테카를로 추정)</small></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 빙고판 -->
+    <section class="card bingo-card">
+      <div class="bingo-head">
+        <h2>🎯 조별 경우의 수 빙고판</h2>
+        <div class="bingo-progress" id="bingoProgress"></div>
+      </div>
+      <p class="bingo-headline" id="bingoHeadline"></p>
+      <div id="bingoGrid" class="bingo-grid"></div>
+      <p class="hint" id="bingoLegend">
+        <span class="lg o">○ 달성/유리</span>
+        <span class="lg x">✕ 실패/불리</span>
+        <span class="lg q">? 미정(조건 진행중)</span>
+        — 미정 칸은 What-if 시뮬레이터로 결과를 넣어보면 ○/✕로 바뀝니다.
+      </p>
+    </section>
+
+    <div class="grid2">
+      <!-- 한국 조 -->
+      <section class="card">
+        <h2 id="koreaGroupTitle">한국 조 순위</h2>
+        <div id="koreaTable"></div>
+        <p class="hint" id="koreaHint"></p>
+      </section>
+
+      <!-- 3위 경쟁 -->
+      <section class="card">
+        <h2>3위 와일드카드 경쟁 <small>(상위 8팀 진출)</small></h2>
+        <div id="thirdTable"></div>
+      </section>
+    </div>
+
+    <!-- 위협 분석 -->
+    <section class="card">
+      <h2>미완료 조별 위협 분석 <small>(이 조들의 3위가 한국을 밀어낼 수 있는가)</small></h2>
+      <div id="threatTable"></div>
+    </section>
+
+    <!-- what-if -->
+    <section class="card">
+      <h2>What-if 시뮬레이터 <small>(잔여경기 결과를 정해 한국 진출 여부 확인)</small></h2>
+      <p class="hint">각 경기 결과를 선택한 뒤 <b>결과 계산</b>을 누르세요. (빈칸은 미정으로 둠)</p>
+      <div id="whatifList" class="whatif-list"></div>
+      <div class="whatif-actions">
+        <button id="whatifBtn" class="btn primary">▶ 결과 계산</button>
+        <button id="whatifReset" class="btn">초기화</button>
+        <span id="whatifResult" class="whatif-result"></span>
+      </div>
+    </section>
+
+    <!-- 전체 조 -->
+    <section class="card">
+      <h2>전체 12개 조 순위</h2>
+      <div id="allGroups" class="groups-grid"></div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    데이터: FIFA 공식 API (api.fifa.com) · openfootball 폴백 ·
+    진출 규정: 각 조 1·2위 + 3위 중 상위 8팀 = 32강
+  </footer>
+
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

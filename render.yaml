@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: worldcup-korea-32
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --threads 4 --timeout 120
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.7"
+      - key: WC_PREFER
+        value: fifa
+      - key: WC_TRIALS
+        value: "6000"
+      - key: WC_STATE_TTL
+        value: "60"

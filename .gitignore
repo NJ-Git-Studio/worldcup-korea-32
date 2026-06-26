@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# 로컬 캐시/임시 데이터 (배포 시 자동 재생성)
+# 단, fifa_raw_snapshot.json 은 오프라인 폴백용으로 커밋 유지
+cache/*
+!cache/fifa_raw_snapshot.json
+manual_matches.json
+
+# 에디터/도구
+.claude/
+.vscode/
+.idea/
+*.log
