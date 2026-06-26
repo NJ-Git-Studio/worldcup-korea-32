@@ -72,7 +72,8 @@ def _build_state(data: dict, run_mc: bool = True) -> dict:
         ],
     }
     if run_mc:
-        payload["monte_carlo"] = SC.monte_carlo(matches, trials=MC_TRIALS)
+        # 몬테카를로 대신 조별 독립성을 이용한 정확(해석적) 확률 — 빠르고 결정적
+        payload["probability"] = SC.advance_probability(matches)
     return payload
 
 

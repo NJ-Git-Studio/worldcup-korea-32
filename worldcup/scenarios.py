@@ -293,6 +293,134 @@ def monte_carlo(matches: list[dict], trials: int = 20000, seed: int = 0) -> dict
     }
 
 
+# ---- 빠른 정확 확률 (몬테카를로 대체) -----------------------------------
+# 잔여경기 1경기당 대표 스코어라인 + 가중치(축구 사전확률 근사).
+# 홈승≈38% / 무≈24% / 원정승≈38%, 골득실 분포까지 일부 반영.
+_SCORELINES_W = [
+    (1, 0, 0.18), (2, 0, 0.10), (2, 1, 0.10),   # 홈 승
+    (0, 0, 0.12), (1, 1, 0.12),                  # 무
+    (0, 1, 0.18), (0, 2, 0.10), (1, 2, 0.10),   # 원정 승
+]
+
+
+def _with_scores(group_matches: list[dict], assignment: dict[str, tuple]) -> list[dict]:
+    """잔여경기 id->(home_score, away_score) 로 점수를 채운 사본."""
+    clone = []
+    for m in group_matches:
+        nm = dict(m)
+        nm["home"] = dict(m["home"])
+        nm["away"] = dict(m["away"])
+        if m["id"] in assignment:
+            nm["home_score"], nm["away_score"] = assignment[m["id"]]
+            nm["status"] = "finished"
+        clone.append(nm)
+    return clone
+
+
+def _group_third_key_dist(matches: list[dict], group: str) -> list[tuple]:
+    """그 조 3위의 (승점,골득실,다득점) 키에 대한 [(key, weight)] 분포."""
+    gms = [m for m in matches if m["group"] == group]
+    rem = [m for m in gms if not S._is_final(m)]
+    if not rem:
+        t = _third_of(S.compute_group_table(gms))
+        key = (t["points"], t["gd"], t["gf"]) if t else (-99, -99, -99)
+        return [(key, 1.0)]
+    keys = [m["id"] for m in rem]
+    out = []
+    for combo in itertools.product(_SCORELINES_W, repeat=len(keys)):
+        weight = 1.0
+        assign = {}
+        for mid, (hs, as_, w) in zip(keys, combo):
+            assign[mid] = (hs, as_)
+            weight *= w
+        t = _third_of(S.compute_group_table(_with_scores(gms, assign)))
+        key = (t["points"], t["gd"], t["gf"]) if t else (-99, -99, -99)
+        out.append((key, weight))
+    return out
+
+
+def _p_above(dist: list[tuple], korea_key: tuple) -> float:
+    """분포에서 3위 키가 한국보다 엄밀히 위일 확률."""
+    tot = sum(w for _, w in dist) or 1.0
+    return sum(w for key, w in dist if key > korea_key) / tot
+
+
+def _poisson_binomial_leq(ps: list[float], k: int) -> float:
+    """독립 베르누이(ps)의 합이 k 이하일 확률 (DP)."""
+    dist = [1.0]
+    for p in ps:
+        nxt = [0.0] * (len(dist) + 1)
+        for i, v in enumerate(dist):
+            nxt[i] += v * (1 - p)
+            nxt[i + 1] += v * p
+        dist = nxt
+    return sum(dist[: k + 1])
+
+
+def advance_probability(matches: list[dict]) -> dict:
+    """한국 32강 진출 확률을 정확히(해석적으로) 계산.
+
+    조별 독립성을 이용: 다른 각 조 3위가 한국보다 위일 확률을 구한 뒤,
+    푸아송-이항 분포로 '한국보다 위인 3위 ≤ 7팀'일 확률을 합산.
+    몬테카를로보다 빠르고(샘플링 오차 0) 결정적.
+    """
+    korea = find_korea(matches)
+    if korea is None:
+        return {"error": "한국 팀 없음"}
+    tables = S.all_group_tables(matches)
+    kgroup = next(m["group"] for m in matches if korea in (m["home"]["name"], m["away"]["name"]))
+    others = [g for g in tables if g != kgroup]
+    other_dists = {g: _group_third_key_dist(matches, g) for g in others}
+
+    # 한국 조 시나리오(승점/골득실/다득점 + 가중치)
+    kgms = [m for m in matches if m["group"] == kgroup]
+    krem = [m for m in kgms if not S._is_final(m)]
+    scenarios = []  # (korea_rank, korea_key, weight)
+    if not krem:
+        tb = S.compute_group_table(kgms)
+        kt = next(t for t in tb if t["name"] == korea)
+        scenarios.append((kt["rank"], (kt["points"], kt["gd"], kt["gf"]), 1.0))
+    else:
+        keys = [m["id"] for m in krem]
+        for combo in itertools.product(_SCORELINES_W, repeat=len(keys)):
+            weight = 1.0
+            assign = {}
+            for mid, (hs, as_, w) in zip(keys, combo):
+                assign[mid] = (hs, as_)
+                weight *= w
+            tb = S.compute_group_table(_with_scores(kgms, assign))
+            kt = next(t for t in tb if t["name"] == korea)
+            scenarios.append((kt["rank"], (kt["points"], kt["gd"], kt["gf"]), weight))
+
+    total_w = sum(w for _, _, w in scenarios) or 1.0
+    advance = as12 = as3 = 0.0
+    group_above = {g: 0.0 for g in others}
+    cut_k = THIRD_PLACE_SPOTS - 1  # 한국보다 위가 7팀 이하면 진출
+
+    for rank, kkey, w in scenarios:
+        ps = [_p_above(other_dists[g], kkey) for g in others]
+        for g, p in zip(others, ps):
+            group_above[g] += w * p
+        if rank <= QUALIFY_SPOTS_PER_GROUP:
+            advance += w
+            as12 += w
+        elif rank >= 4:
+            pass  # 탈락
+        else:
+            p_adv = _poisson_binomial_leq(ps, cut_k)
+            advance += w * p_adv
+            as3 += w * p_adv
+
+    return {
+        "method": "exact",
+        "trials": None,
+        "advance_prob": advance / total_w,
+        "as_first_second_prob": as12 / total_w,
+        "as_third_prob": as3 / total_w,
+        "group_above_prob": {g: group_above[g] / total_w for g in sorted(group_above)},
+    }
+
+
 # ---- what-if: 사용자가 잔여경기 결과를 지정 -----------------------------
 def what_if(matches: list[dict], outcomes: dict[str, str]) -> dict:
     """outcomes: {match_id: 'home'|'draw'|'away'} (또는 'A:B' 점수문자열).

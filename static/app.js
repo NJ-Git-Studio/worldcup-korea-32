@@ -36,7 +36,7 @@ async function loadState(refresh = false) {
 function render() {
   renderMeta();
   renderVerdict();
-  renderBingo(STATE.bingo, STATE.monte_carlo);
+  renderBingo(STATE.bingo, STATE.probability);
   renderKoreaGroup();
   renderThird();
   renderThreat();
@@ -110,12 +110,14 @@ function renderVerdict() {
   badge.textContent = VERDICT_KO[v] || v;
   $("#verdictText").textContent = a.verdict_text || "";
 
-  const mc = STATE.monte_carlo;
+  const mc = STATE.probability;
   if (mc && typeof mc.advance_prob === "number") {
     const pct = Math.round(mc.advance_prob * 1000) / 10;
     $("#gaugeNum").textContent = pct + "%";
     $("#gauge").style.setProperty("--p", pct + "%");
-    $("#gaugeSub").textContent = `(몬테카를로 ${mc.trials.toLocaleString()}회 추정)`;
+    $("#gaugeSub").textContent = mc.trials
+      ? `(몬테카를로 ${mc.trials.toLocaleString()}회 추정)`
+      : `(조별 독립 정확 계산)`;
   }
   // 확정/탈락이면 게이지 색 고정
   const g = $("#gauge");
@@ -186,7 +188,7 @@ function renderThird() {
 
 function renderThreat() {
   const det = STATE.analysis.wildcard_detail || [];
-  const probs = (STATE.monte_carlo && STATE.monte_carlo.group_above_prob) || {};
+  const probs = (STATE.probability && STATE.probability.group_above_prob) || {};
   const box = $("#threatTable");
   box.innerHTML = "";
   const incomplete = det.filter((d) => !d.complete);
@@ -208,7 +210,7 @@ function renderThreat() {
     });
   box.appendChild(
     el("p", "hint",
-      "막대 = 이 조의 3위가 한국보다 위에 설 확률(몬테카를로). 높을수록 한국에 위협적입니다.")
+      "막대 = 이 조의 3위가 한국보다 위에 설 확률(정확 계산). 높을수록 한국에 위협적입니다.")
   );
 }
 
@@ -255,8 +257,8 @@ async function runWhatif() {
     `${advance ? "✅ 진출" : a.verdict === "ELIMINATED" ? "❌ 탈락" : "⚖ 경합"} — ` +
     `${a.verdict_text}` +
     (a.korea_provisional_third_rank ? ` (3위 경쟁 ${a.korea_provisional_third_rank}위)` : "");
-  // 빙고판도 가정 결과 반영해 갱신 (확률 막대는 라이브 MC 유지)
-  if (data.bingo) renderBingo(data.bingo, STATE.monte_carlo);
+  // 빙고판도 가정 결과 반영해 갱신 (확률 막대는 라이브 값 유지)
+  if (data.bingo) renderBingo(data.bingo, STATE.probability);
 }
 
 function renderAllGroups() {
