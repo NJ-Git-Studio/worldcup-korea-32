@@ -28,6 +28,8 @@ import time
 import urllib.request
 from typing import Any, Optional
 
+from .teams import to_korean
+
 # ---- 설정 ---------------------------------------------------------------
 FIFA_COMPETITION_ID = "17"        # FIFA World Cup (남자 시니어)
 FIFA_SEASON_ID = "285023"         # 2026 캐나다/멕시코/미국
@@ -117,14 +119,16 @@ def parse_fifa(payload: dict) -> list[dict]:
         as_ = away.get("Score")
         if status == "scheduled":
             hs = as_ = None
+        hcode = home.get("IdCountry") or _abbr(hname)
+        acode = away.get("IdCountry") or _abbr(aname)
         out.append(
             {
                 "id": str(m.get("IdMatch") or f"{group}-{hname}-{aname}"),
                 "group": group,
                 "date": (m.get("Date") or "")[:10],
                 "status": status,
-                "home": {"name": hname, "code": home.get("IdCountry") or _abbr(hname)},
-                "away": {"name": aname, "code": away.get("IdCountry") or _abbr(aname)},
+                "home": {"name": to_korean(hname, hcode), "code": hcode},
+                "away": {"name": to_korean(aname, acode), "code": acode},
                 "home_score": hs,
                 "away_score": as_,
             }
@@ -159,8 +163,8 @@ def parse_openfootball(payload: dict) -> list[dict]:
                 "group": group,
                 "date": str(m.get("date") or "")[:10],
                 "status": status,
-                "home": {"name": hname, "code": _abbr(hname)},
-                "away": {"name": aname, "code": _abbr(aname)},
+                "home": {"name": to_korean(hname), "code": _abbr(hname)},
+                "away": {"name": to_korean(aname), "code": _abbr(aname)},
                 "home_score": hs,
                 "away_score": as_,
             }
