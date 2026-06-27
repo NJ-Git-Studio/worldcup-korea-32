@@ -146,8 +146,8 @@ function renderBingo(b, mc) {
       body += "<ul>" + (c.conditions || []).map((cc) => {
         if (cc.pivotal) {
           return `<li><b>${cc.match}</b><br/>` +
-            `→ <span class="favres">${cc.fav_label}</span> 이면 유리 ` +
-            `<span class="cprob">(그 결과 확률 ${Math.round(cc.result_prob * 100)}%)</span></li>`;
+            `→ <span class="favres">${cc.fav_label}</span> 이면 유리<br/>` +
+            `<span class="cprob">확률 : ${Math.round(cc.result_prob * 100)}%</span></li>`;
         }
         return `<li class="dim"><b>${cc.match}</b><br/>→ 결과 영향 적음</li>`;
       }).join("") + "</ul>";
