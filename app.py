@@ -61,7 +61,7 @@ def _build_state(data: dict, run_mc: bool = True) -> dict:
             for g, tb in tables.items()
         },
         "analysis": analysis,
-        "bingo": SC.bingo_board(matches),
+        "bingo": SC.bingo_board(matches, odds_map),
         "predictions": PR.predict_remaining(matches, odds_map),
         "odds_meta": {
             "source": odds_meta.get("source"),

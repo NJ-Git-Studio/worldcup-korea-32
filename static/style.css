@@ -122,6 +122,12 @@ tr.qualify td{box-shadow:inset 3px 0 0 var(--green)}
   position:relative; background:var(--card2); border:2px solid var(--line);
   border-radius:12px; padding:12px 12px 12px; min-height:118px; overflow:hidden;
 }
+.bcell .favprob{font-size:12px; color:var(--muted); margin-bottom:6px}
+.bcell .favprob b{color:#ffd587; font-size:15px}
+.bcell .favres{color:#9ff0bf; font-weight:700}
+.bcell .cprob{color:#7ab8ff; font-size:11px}
+.bcell li.dim{color:var(--muted); opacity:.7}
+.bcell li{margin-bottom:6px}
 .bcell .mark{
   position:absolute; top:8px; right:12px; font-size:30px; font-weight:900; line-height:1;
 }

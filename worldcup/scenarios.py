@@ -485,62 +485,93 @@ def _is_above(third: Optional[dict], korea_key: tuple) -> bool:
     return (third["points"], third["gd"], third["gf"]) > korea_key
 
 
-def _match_conditions(group_matches: list[dict], rem: list[dict], korea_key: tuple) -> list[dict]:
-    """미정 조의 잔여경기별로 '한국에 유리한 결과'를 산출(인포그래픽용 문구)."""
+def _match_conditions(group_matches: list[dict], rem: list[dict], korea_key: tuple,
+                      pred_map: Optional[dict] = None) -> list[dict]:
+    """미정 조의 잔여경기별 '한국에 유리한 결과 + 그 결과 확률 + 유리 확률'.
+
+    각 잔여경기 target 에 대해:
+      - 결과별(승/무/패) '이 조가 한국에 유리할 조건부 확률'을 다른 잔여경기를
+        전력/배당으로 가중해 계산
+      - 가장 유리한 결과(fav_result)와, 그 결과가 실제로 나올 확률(result_prob),
+        그 결과가 났을 때 조가 유리할 확률(fav_prob_if)을 함께 제공
+    """
+    pred_map = pred_map or {}
     conditions = []
     for target in rem:
         others = [m for m in rem if m["id"] != target["id"]]
         okeys = [m["id"] for m in others]
-        rates: dict[str, float] = {}
+        per_other = [_scorelines_for(pred_map.get(k)) for k in okeys]
+        cond_fav: dict[str, float] = {}
         for res in ("home", "draw", "away"):
-            fav = tot = 0
-            for combo in itertools.product(("home", "draw", "away"), repeat=len(okeys)):
-                assign = dict(zip(okeys, combo))
-                assign[target["id"]] = res
-                table = S.compute_group_table(_with_results(group_matches, assign))
-                tot += 1
+            ts = _RESULT_SCORELINES[res]
+            favw = totw = 0.0
+            for combo in itertools.product(*per_other) if per_other else [()]:
+                assign = {target["id"]: ts}
+                w = 1.0
+                for k, (hs, as_, ww) in zip(okeys, combo):
+                    assign[k] = (hs, as_)
+                    w *= ww
+                table = S.compute_group_table(_with_scores(group_matches, assign))
+                totw += w
                 if not _is_above(_third_of(table), korea_key):
-                    fav += 1
-            rates[res] = fav / tot if tot else 0.0
-        best = max(rates, key=lambda r: rates[r])
-        worst = min(rates.values())
+                    favw += w
+            cond_fav[res] = favw / totw if totw else 0.0
+
+        probs = pred_map.get(target["id"]) or (0.38, 0.24, 0.38)
+        p_by_res = {"home": probs[0], "draw": probs[1], "away": probs[2]}
         desc = {
-            "home": f"{target['home']['name']} 승리",
+            "home": f"{target['home']['name']} 승",
             "draw": "무승부",
-            "away": f"{target['away']['name']} 승리",
+            "away": f"{target['away']['name']} 승",
         }
-        if rates[best] <= 0.0:
-            text = f"{target['home']['name']} vs {target['away']['name']}: 어떤 결과도 도움 안 됨"
-        elif rates[best] >= 0.999 and worst < 0.999:
-            text = f"{desc[best]} 시 유리 (이 결과면 안전)"
-        elif rates[best] >= 0.999:
-            text = f"{desc[best]} (영향 적음)"
+        hi = max(cond_fav.values())
+        lo = min(cond_fav.values())
+        swing = hi - lo
+        best = max(cond_fav, key=lambda r: cond_fav[r])
+        # 결과에 따라 유불리가 갈리는 결정적(swing) 경기인가?
+        pivotal = swing >= 0.05
+        if pivotal:
+            fav_results = [r for r in ("home", "draw", "away") if cond_fav[r] >= hi - 0.05]
         else:
-            text = f"{desc[best]} 시 유리"
+            fav_results = []  # 이 경기는 결과와 무관(영향 적음)
+        fav_label = " 또는 ".join(desc[r] for r in fav_results)
+
         conditions.append(
             {
                 "match": f"{target['home']['name']} vs {target['away']['name']}",
                 "home": target["home"]["name"],
                 "away": target["away"]["name"],
+                "pivotal": pivotal,
                 "fav_result": best,
-                "text": text,
+                "fav_label": fav_label,
+                "result_prob": round(sum(p_by_res[r] for r in fav_results), 4),
+                "fav_prob_if": round(hi, 4),
+                "swing": round(swing, 4),
             }
         )
     return conditions
 
 
-def bingo_board(matches: list[dict]) -> dict:
+def bingo_board(matches: list[dict], odds_map: Optional[dict] = None) -> dict:
     """이미지 같은 빙고판 데이터.
 
     각 '다른 조'를 한 칸으로:
       status = favorable(○) | unfavorable(X) | pending(?)
       locked = 더 이상 바뀌지 않음(확정)
+    미정 칸은 경기별 유리 결과 + 그 결과 확률 + 조가 유리할 확률(배당/전력 가중)을 담는다.
     상단엔 진출에 필요한 '한국보다 아래 3위' 팀 수와 현재 확보 수.
     """
     korea = find_korea(matches)
     tables = S.all_group_tables(matches)
     if korea is None:
         return {"available": False, "reason": "한국 팀을 찾지 못했습니다."}
+
+    pred_map = None
+    try:
+        from . import predictor as PR
+        pred_map = PR.outcome_probs(matches, odds_map)
+    except Exception:
+        pred_map = {}
 
     kgroup = next(m["group"] for m in matches if korea in (m["home"]["name"], m["away"]["name"]))
     ktable = tables[kgroup]
@@ -600,7 +631,10 @@ def bingo_board(matches: list[dict]) -> dict:
                 cell["status"], cell["locked"] = "unfavorable", True
             else:
                 cell["status"], cell["locked"] = "pending", False
-                cell["conditions"] = _match_conditions(gms, rem, korea_key)
+                cell["conditions"] = _match_conditions(gms, rem, korea_key, pred_map)
+                # 이 조가 한국에 유리할 확률(3위가 한국보다 위가 아닐 확률)
+                dist = _group_third_key_dist(matches, g, pred_map)
+                cell["favorable_prob"] = round(1.0 - _p_above(dist, korea_key), 4)
         if cell["status"] == "favorable":
             fav_locked += 1
         elif cell["status"] == "unfavorable":

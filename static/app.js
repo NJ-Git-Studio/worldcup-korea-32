@@ -136,12 +136,21 @@ function renderBingo(b, mc) {
     if (c.third_now) {
       body += `<div class="third">현재 3위: ${c.third_now} (승점 ${c.third_now_pts}, GD ${c.third_now_gd >= 0 ? "+" : ""}${c.third_now_gd})</div>`;
     }
-    if (c.status === "pending" && c.conditions && c.conditions.length) {
-      body += "<ul>" + c.conditions.map((cc) => `<li>${cc.text}</li>`).join("") + "</ul>";
-      const p = groupAbove[c.group];
-      if (typeof p === "number") {
-        body += `<span class="prob">유리 확률 ${Math.round((1 - p) * 100)}%</span>`;
+    if (c.status === "pending") {
+      const fp = typeof c.favorable_prob === "number"
+        ? c.favorable_prob
+        : (typeof groupAbove[c.group] === "number" ? 1 - groupAbove[c.group] : null);
+      if (fp !== null) {
+        body += `<div class="favprob">한국에 유리할 확률 <b>${Math.round(fp * 100)}%</b></div>`;
       }
+      body += "<ul>" + (c.conditions || []).map((cc) => {
+        if (cc.pivotal) {
+          return `<li><b>${cc.match}</b><br/>` +
+            `→ <span class="favres">${cc.fav_label}</span> 이면 유리 ` +
+            `<span class="cprob">(그 결과 확률 ${Math.round(cc.result_prob * 100)}%)</span></li>`;
+        }
+        return `<li class="dim"><b>${cc.match}</b><br/>→ 결과 영향 적음</li>`;
+      }).join("") + "</ul>";
     } else if (c.locked) {
       body += `<div class="locked-msg">${c.status === "favorable" ? "한국보다 아래 — 확정 ○" : "한국보다 위 — 확정 ✕"}</div>`;
     }
