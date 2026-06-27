@@ -109,20 +109,38 @@ function renderPredictions() {
 
 const MARK = { favorable: "○", unfavorable: "✕", pending: "?" };
 
-// ---- 빙고 호버 창(계산 근거) ----
-let _bingoTip = null;
-function bingoTip() {
-  if (!_bingoTip) {
-    _bingoTip = el("div", "bingo-tip");
-    _bingoTip.style.display = "none";
-    document.body.appendChild(_bingoTip);
+// ---- 빙고 계산근거 모달(클릭/탭으로 열기) ----
+let _bdModal = null;
+function bdModal() {
+  if (!_bdModal) {
+    _bdModal = el("div", "bd-modal");
+    _bdModal.innerHTML =
+      `<div class="bd-backdrop"></div>` +
+      `<div class="bd-card"><button class="bd-close" aria-label="닫기">✕</button>` +
+      `<div class="bd-body"></div></div>`;
+    _bdModal.style.display = "none";
+    document.body.appendChild(_bdModal);
+    _bdModal.querySelector(".bd-backdrop").addEventListener("click", closeBd);
+    _bdModal.querySelector(".bd-close").addEventListener("click", closeBd);
   }
-  return _bingoTip;
+  return _bdModal;
 }
+function openBd(group, fp, bd) {
+  const m = bdModal();
+  m.querySelector(".bd-body").innerHTML = tipHtml(group, fp, bd);
+  m.style.display = "flex";
+  document.body.style.overflow = "hidden";
+}
+function closeBd() {
+  if (_bdModal) _bdModal.style.display = "none";
+  document.body.style.overflow = "";
+}
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeBd(); });
+
 function tipHtml(group, fp, bd) {
   let h = `<div class="tip-title">${group}조 — 한국에 유리할 확률 ${Math.round((fp ?? bd.total) * 100)}%</div>`;
   h += `<div class="tip-sub">잔여경기 결과 조합별 · 발생확률 / 한국 유리(골득실 포함)</div>`;
-  h += `<table class="tip-tbl"><thead><tr>`;
+  h += `<div class="tip-scroll"><table class="tip-tbl"><thead><tr>`;
   bd.matches.forEach((m) => { h += `<th>${m.home} vs ${m.away}</th>`; });
   h += `<th>확률</th><th>한국</th></tr></thead><tbody>`;
   bd.rows.forEach((r) => {
@@ -132,31 +150,9 @@ function tipHtml(group, fp, bd) {
     r.results.forEach((x) => { h += `<td>${x}</td>`; });
     h += `<td class="num">${Math.round(r.prob * 100)}%</td><td class="st">${favTxt}</td></tr>`;
   });
-  h += `</tbody></table>`;
+  h += `</tbody></table></div>`;
   h += `<div class="tip-foot">유리한 비중 합계 = <b>${Math.round(bd.total * 100)}%</b></div>`;
   return h;
-}
-function positionTip(e) {
-  const t = bingoTip();
-  if (t.style.display === "none") return;
-  const pad = 14, w = t.offsetWidth, h = t.offsetHeight;
-  let x = e.clientX + pad, y = e.clientY + pad;
-  if (x + w > window.innerWidth - 8) x = e.clientX - w - pad;
-  if (y + h > window.innerHeight - 8) y = window.innerHeight - h - 8;
-  if (y < 8) y = 8;
-  t.style.left = x + "px";
-  t.style.top = y + "px";
-}
-function attachTip(cell, group, fp, bd) {
-  cell.classList.add("has-tip");
-  cell.addEventListener("mouseenter", (e) => {
-    const t = bingoTip();
-    t.innerHTML = tipHtml(group, fp, bd);
-    t.style.display = "block";
-    positionTip(e);
-  });
-  cell.addEventListener("mousemove", positionTip);
-  cell.addEventListener("mouseleave", () => { if (_bingoTip) _bingoTip.style.display = "none"; });
 }
 
 function renderBingo(b, mc) {
@@ -196,7 +192,7 @@ function renderBingo(b, mc) {
         : (typeof groupAbove[c.group] === "number" ? 1 - groupAbove[c.group] : null);
       if (fp !== null) {
         body += `<div class="favprob">한국에 유리할 확률 <b>${Math.round(fp * 100)}%</b>` +
-          (c.breakdown ? ` <span class="tip-hint">ⓘ 근거</span>` : "") + `</div>`;
+          (c.breakdown ? ` <button type="button" class="tip-hint">ⓘ 근거 보기</button>` : "") + `</div>`;
       }
       body += "<ul>" + (c.conditions || []).map((cc) => {
         if (cc.pivotal) {
@@ -213,7 +209,13 @@ function renderBingo(b, mc) {
     }
     cell.innerHTML = body;
     if (c.status === "pending" && c.breakdown) {
-      attachTip(cell, c.group, c.favorable_prob, c.breakdown);
+      const btn = cell.querySelector(".tip-hint");
+      if (btn) {
+        btn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          openBd(c.group, c.favorable_prob, c.breakdown);
+        });
+      }
     }
     grid.appendChild(cell);
   });

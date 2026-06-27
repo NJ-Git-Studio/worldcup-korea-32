@@ -129,26 +129,48 @@ tr.qualify td{box-shadow:inset 3px 0 0 var(--green)}
 .bcell .lvl{font-size:11px; font-weight:800; padding:1px 7px; border-radius:6px}
 .bcell .lvl.lv-clinch{background:rgba(34,197,94,.2); color:#7ee0a0; border:1px solid var(--green)}
 .bcell .lvl.lv-fav{background:rgba(245,158,11,.16); color:#ffd587; border:1px solid var(--amber)}
-.bcell.has-tip{cursor:help}
-.bcell .tip-hint{font-size:10px; color:#7ab8ff; border:1px solid #2f4a66; border-radius:5px; padding:0 5px; margin-left:4px}
-
-/* 빙고 호버 창 */
-.bingo-tip{
-  position:fixed; z-index:1000; max-width:380px; pointer-events:none;
-  background:#0d1117; border:1px solid var(--accent); border-radius:10px;
-  padding:10px 12px; box-shadow:0 10px 34px rgba(0,0,0,.6); font-size:12px; color:var(--txt);
+.bcell .tip-hint{
+  font-size:11px; color:#7ab8ff; background:rgba(59,130,246,.12);
+  border:1px solid #2f4a66; border-radius:6px; padding:2px 8px; margin-left:4px;
+  cursor:pointer; font-family:inherit;
 }
-.tip-title{font-weight:800; margin-bottom:2px}
-.tip-sub{color:var(--muted); font-size:10.5px; margin-bottom:8px}
-.tip-tbl{width:100%; border-collapse:collapse}
-.tip-tbl th{font-size:10px; color:var(--muted); text-align:left; padding:3px 6px; border-bottom:1px solid var(--line); white-space:nowrap}
-.tip-tbl td{padding:3px 6px; border-bottom:1px solid #20262f; white-space:nowrap}
+.bcell .tip-hint:hover{background:rgba(59,130,246,.25)}
+.bcell .tip-hint:active{transform:scale(.96)}
+
+/* 빙고 계산근거 모달 */
+.bd-modal{
+  position:fixed; inset:0; z-index:2000; display:none;
+  align-items:center; justify-content:center; padding:16px;
+}
+.bd-backdrop{position:absolute; inset:0; background:rgba(0,0,0,.6); backdrop-filter:blur(2px)}
+.bd-card{
+  position:relative; z-index:1; width:100%; max-width:460px; max-height:85vh; overflow-y:auto;
+  background:#0d1117; border:1px solid var(--accent); border-radius:14px;
+  padding:18px 16px 16px; box-shadow:0 18px 50px rgba(0,0,0,.7);
+}
+.bd-close{
+  position:absolute; top:8px; right:8px; width:34px; height:34px; border-radius:8px;
+  background:var(--card2); color:var(--txt); border:1px solid var(--line);
+  font-size:16px; cursor:pointer; line-height:1;
+}
+.bd-close:hover{border-color:var(--accent)}
+.tip-title{font-weight:800; margin-bottom:2px; font-size:15px; padding-right:34px}
+.tip-sub{color:var(--muted); font-size:12px; margin-bottom:10px}
+.tip-scroll{overflow-x:auto; -webkit-overflow-scrolling:touch}
+.tip-tbl{width:100%; border-collapse:collapse; font-size:13px}
+.tip-tbl th{font-size:11px; color:var(--muted); text-align:left; padding:6px 8px; border-bottom:1px solid var(--line); white-space:nowrap}
+.tip-tbl td{padding:6px 8px; border-bottom:1px solid #20262f; white-space:nowrap}
 .tip-tbl td.num{text-align:right; color:var(--muted)}
 .tip-tbl tr.f-y .st{color:var(--green); font-weight:700}
 .tip-tbl tr.f-n .st{color:var(--red)}
 .tip-tbl tr.f-p .st{color:var(--amber)}
-.tip-foot{margin-top:8px; padding-top:6px; border-top:1px solid var(--line); text-align:right}
-.tip-foot b{color:#ffd587; font-size:14px}
+.tip-foot{margin-top:10px; padding-top:8px; border-top:1px solid var(--line); text-align:right; font-size:13px}
+.tip-foot b{color:#ffd587; font-size:16px}
+@media(max-width:520px){
+  .bd-card{max-width:none; max-height:88vh}
+  .tip-tbl{font-size:14px}
+  .tip-tbl th,.tip-tbl td{padding:8px 9px}
+}
 .bcell li.dim{color:var(--muted); opacity:.7}
 .bcell li{margin-bottom:6px}
 .bcell .mark{
