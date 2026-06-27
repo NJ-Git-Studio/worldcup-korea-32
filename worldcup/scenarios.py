@@ -578,6 +578,56 @@ def _match_conditions(group_matches: list[dict], rem: list[dict], korea_key: tup
     return conditions
 
 
+def _bucket_norm(bucket: list[tuple]) -> list[tuple]:
+    s = sum(w for *_, w in bucket) or 1.0
+    return [(hs, as_, w / s) for hs, as_, w in bucket]
+
+
+def _group_breakdown(matches: list[dict], group: str, korea_key: tuple,
+                     pred_map: Optional[dict]) -> Optional[dict]:
+    """그 조 유리 확률이 어떻게 나오는지 — 잔여경기 결과 조합(승/무/패)별
+    발생확률과 한국 유불리(골득실까지 반영한 유리 비율)를 분해."""
+    pred_map = pred_map or {}
+    gms = [m for m in matches if m["group"] == group]
+    rem = [m for m in gms if not S._is_final(m)]
+    if not rem:
+        return None
+    buckets = {"home": _bucket_norm(_HOME_SL), "draw": _bucket_norm(_DRAW_SL),
+               "away": _bucket_norm(_AWAY_SL)}
+    idx = {"home": 0, "draw": 1, "away": 2}
+    keys = [m["id"] for m in rem]
+    bprobs = [pred_map.get(m["id"]) or (0.38, 0.24, 0.38) for m in rem]
+    rows = []
+    for combo in itertools.product(("home", "draw", "away"), repeat=len(rem)):
+        prob = 1.0
+        for i, r in enumerate(combo):
+            prob *= bprobs[i][idx[r]]
+        per = [buckets[r] for r in combo]
+        favw = totw = 0.0
+        for sl in itertools.product(*per):
+            w = 1.0
+            assign = {}
+            for k, (hs, as_, ww) in zip(keys, sl):
+                assign[k] = (hs, as_)
+                w *= ww
+            table = S.compute_group_table(_with_scores(gms, assign))
+            totw += w
+            if not _is_above(_third_of(table), korea_key):
+                favw += w
+        fav = favw / totw if totw else 0.0
+        results = []
+        for m, r in zip(rem, combo):
+            results.append({"home": f"{m['home']['name']} 승", "draw": "무승부",
+                            "away": f"{m['away']['name']} 승"}[r])
+        rows.append({"results": results, "prob": round(prob, 4), "fav": round(fav, 4)})
+    rows.sort(key=lambda x: -x["prob"])
+    return {
+        "matches": [{"home": m["home"]["name"], "away": m["away"]["name"]} for m in rem],
+        "rows": rows,
+        "total": round(sum(r["prob"] * r["fav"] for r in rows), 4),
+    }
+
+
 def bingo_board(matches: list[dict], odds_map: Optional[dict] = None) -> dict:
     """이미지 같은 빙고판 데이터.
 
@@ -661,6 +711,8 @@ def bingo_board(matches: list[dict], odds_map: Optional[dict] = None) -> dict:
                 # 이 조가 한국에 유리할 확률(3위가 한국보다 위가 아닐 확률)
                 dist = _group_third_key_dist(matches, g, pred_map)
                 cell["favorable_prob"] = round(1.0 - _p_above(dist, korea_key), 4)
+                # 호버 창용 조합 분해표
+                cell["breakdown"] = _group_breakdown(matches, g, korea_key, pred_map)
         if cell["status"] == "favorable":
             fav_locked += 1
         elif cell["status"] == "unfavorable":

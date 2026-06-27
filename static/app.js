@@ -105,6 +105,56 @@ function renderPredictions() {
 
 const MARK = { favorable: "○", unfavorable: "✕", pending: "?" };
 
+// ---- 빙고 호버 창(계산 근거) ----
+let _bingoTip = null;
+function bingoTip() {
+  if (!_bingoTip) {
+    _bingoTip = el("div", "bingo-tip");
+    _bingoTip.style.display = "none";
+    document.body.appendChild(_bingoTip);
+  }
+  return _bingoTip;
+}
+function tipHtml(group, fp, bd) {
+  let h = `<div class="tip-title">${group}조 — 한국에 유리할 확률 ${Math.round((fp ?? bd.total) * 100)}%</div>`;
+  h += `<div class="tip-sub">잔여경기 결과 조합별 · 발생확률 / 한국 유리(골득실 포함)</div>`;
+  h += `<table class="tip-tbl"><thead><tr>`;
+  bd.matches.forEach((m) => { h += `<th>${m.home} vs ${m.away}</th>`; });
+  h += `<th>확률</th><th>한국</th></tr></thead><tbody>`;
+  bd.rows.forEach((r) => {
+    const favTxt = r.fav >= 0.995 ? "유리" : (r.fav <= 0.005 ? "불리" : `${Math.round(r.fav * 100)}% 유리`);
+    const cls = r.fav >= 0.995 ? "f-y" : (r.fav <= 0.005 ? "f-n" : "f-p");
+    h += `<tr class="${cls}">`;
+    r.results.forEach((x) => { h += `<td>${x}</td>`; });
+    h += `<td class="num">${Math.round(r.prob * 100)}%</td><td class="st">${favTxt}</td></tr>`;
+  });
+  h += `</tbody></table>`;
+  h += `<div class="tip-foot">유리한 비중 합계 = <b>${Math.round(bd.total * 100)}%</b></div>`;
+  return h;
+}
+function positionTip(e) {
+  const t = bingoTip();
+  if (t.style.display === "none") return;
+  const pad = 14, w = t.offsetWidth, h = t.offsetHeight;
+  let x = e.clientX + pad, y = e.clientY + pad;
+  if (x + w > window.innerWidth - 8) x = e.clientX - w - pad;
+  if (y + h > window.innerHeight - 8) y = window.innerHeight - h - 8;
+  if (y < 8) y = 8;
+  t.style.left = x + "px";
+  t.style.top = y + "px";
+}
+function attachTip(cell, group, fp, bd) {
+  cell.classList.add("has-tip");
+  cell.addEventListener("mouseenter", (e) => {
+    const t = bingoTip();
+    t.innerHTML = tipHtml(group, fp, bd);
+    t.style.display = "block";
+    positionTip(e);
+  });
+  cell.addEventListener("mousemove", positionTip);
+  cell.addEventListener("mouseleave", () => { if (_bingoTip) _bingoTip.style.display = "none"; });
+}
+
 function renderBingo(b, mc) {
   const grid = $("#bingoGrid");
   const headline = $("#bingoHeadline");
@@ -141,7 +191,8 @@ function renderBingo(b, mc) {
         ? c.favorable_prob
         : (typeof groupAbove[c.group] === "number" ? 1 - groupAbove[c.group] : null);
       if (fp !== null) {
-        body += `<div class="favprob">한국에 유리할 확률 <b>${Math.round(fp * 100)}%</b></div>`;
+        body += `<div class="favprob">한국에 유리할 확률 <b>${Math.round(fp * 100)}%</b>` +
+          (c.breakdown ? ` <span class="tip-hint">ⓘ 근거</span>` : "") + `</div>`;
       }
       body += "<ul>" + (c.conditions || []).map((cc) => {
         if (cc.pivotal) {
@@ -157,6 +208,9 @@ function renderBingo(b, mc) {
       body += `<div class="locked-msg">${c.status === "favorable" ? "한국보다 아래 — 확정 ○" : "한국보다 위 — 확정 ✕"}</div>`;
     }
     cell.innerHTML = body;
+    if (c.status === "pending" && c.breakdown) {
+      attachTip(cell, c.group, c.favorable_prob, c.breakdown);
+    }
     grid.appendChild(cell);
   });
   if (!b.cells || !b.cells.length) {
