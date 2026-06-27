@@ -141,6 +141,26 @@ tr.qualify td{box-shadow:inset 3px 0 0 var(--green)}
 .lg.o{color:var(--green)} .lg.x{color:var(--red)} .lg.q{color:var(--muted)}
 #bingoLegend{margin-top:14px}
 
+/* predictions */
+.pred-list{display:flex; flex-direction:column; gap:12px}
+.pred{background:var(--card2); border:1px solid var(--line); border-radius:10px; padding:10px 12px}
+.pred-top{display:flex; align-items:center; gap:8px; font-size:13.5px; margin-bottom:7px; flex-wrap:wrap}
+.pred .pname{font-weight:600}
+.pred .pname.home{text-align:right}
+.pred .pvs{color:var(--muted); font-size:11px}
+.pred .ptier{margin-left:auto; font-size:12px; font-weight:700; padding:2px 9px; border-radius:999px}
+.ptier.t-strong{background:rgba(59,130,246,.18); color:#7ab8ff; border:1px solid #3b82f6}
+.ptier.t-fav{background:rgba(34,197,94,.15); color:#7ee0a0; border:1px solid var(--green)}
+.ptier.t-slight{background:rgba(245,158,11,.15); color:#ffd587; border:1px solid var(--amber)}
+.ptier.t-even{background:#2a3340; color:var(--muted); border:1px solid var(--line)}
+.pbar{display:flex; height:14px; border-radius:7px; overflow:hidden; background:#222c38}
+.pbar i{display:block; height:100%}
+.pbar .bh{background:#3b82f6}
+.pbar .bd{background:#566275}
+.pbar .ba{background:#ef6a3a}
+.pnums{display:flex; justify-content:space-between; font-size:11px; color:var(--muted); margin-top:4px}
+.pnums span:nth-child(2){color:#9aa6b5}
+
 /* all groups */
 .groups-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:14px}
 @media(max-width:840px){.groups-grid{grid-template-columns:1fr}}

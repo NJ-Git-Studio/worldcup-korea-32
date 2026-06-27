@@ -294,13 +294,28 @@ def monte_carlo(matches: list[dict], trials: int = 20000, seed: int = 0) -> dict
 
 
 # ---- 빠른 정확 확률 (몬테카를로 대체) -----------------------------------
-# 잔여경기 1경기당 대표 스코어라인 + 가중치(축구 사전확률 근사).
-# 홈승≈38% / 무≈24% / 원정승≈38%, 골득실 분포까지 일부 반영.
-_SCORELINES_W = [
-    (1, 0, 0.18), (2, 0, 0.10), (2, 1, 0.10),   # 홈 승
-    (0, 0, 0.12), (1, 1, 0.12),                  # 무
-    (0, 1, 0.18), (0, 2, 0.10), (1, 2, 0.10),   # 원정 승
-]
+# 잔여경기 1경기당 대표 스코어라인. 홈승/무/원정승 버킷으로 묶어두고,
+# 전력 예측이 있으면 각 버킷 합을 예측 확률(p_home/p_draw/p_away)로 맞춘다.
+_HOME_SL = [(1, 0, 0.18), (2, 0, 0.10), (2, 1, 0.10)]   # 합 0.38
+_DRAW_SL = [(0, 0, 0.12), (1, 1, 0.12)]                  # 합 0.24
+_AWAY_SL = [(0, 1, 0.18), (0, 2, 0.10), (1, 2, 0.10)]   # 합 0.38
+# 예측 없을 때의 중립 가중(기존과 동일): 홈38/무24/원정38
+_SCORELINES_W = _HOME_SL + _DRAW_SL + _AWAY_SL
+
+
+def _scorelines_for(probs: Optional[tuple]) -> list[tuple]:
+    """(p_home,p_draw,p_away) -> 버킷 합이 그 확률이 되도록 가중한 스코어라인.
+
+    probs 가 None 이면 중립 가중(_SCORELINES_W)을 그대로 사용.
+    """
+    if not probs:
+        return _SCORELINES_W
+    out = []
+    for bucket, target in ((_HOME_SL, probs[0]), (_DRAW_SL, probs[1]), (_AWAY_SL, probs[2])):
+        base = sum(w for *_, w in bucket) or 1.0
+        for hs, as_, w in bucket:
+            out.append((hs, as_, w / base * target))
+    return out
 
 
 def _with_scores(group_matches: list[dict], assignment: dict[str, tuple]) -> list[dict]:
@@ -317,8 +332,12 @@ def _with_scores(group_matches: list[dict], assignment: dict[str, tuple]) -> lis
     return clone
 
 
-def _group_third_key_dist(matches: list[dict], group: str) -> list[tuple]:
-    """그 조 3위의 (승점,골득실,다득점) 키에 대한 [(key, weight)] 분포."""
+def _group_third_key_dist(matches: list[dict], group: str,
+                          pred_map: Optional[dict] = None) -> list[tuple]:
+    """그 조 3위의 (승점,골득실,다득점) 키에 대한 [(key, weight)] 분포.
+
+    pred_map: {match_id: (p_home,p_draw,p_away)} 가 있으면 전력 예측으로 가중.
+    """
     gms = [m for m in matches if m["group"] == group]
     rem = [m for m in gms if not S._is_final(m)]
     if not rem:
@@ -326,8 +345,9 @@ def _group_third_key_dist(matches: list[dict], group: str) -> list[tuple]:
         key = (t["points"], t["gd"], t["gf"]) if t else (-99, -99, -99)
         return [(key, 1.0)]
     keys = [m["id"] for m in rem]
+    per_match = [_scorelines_for((pred_map or {}).get(mid)) for mid in keys]
     out = []
-    for combo in itertools.product(_SCORELINES_W, repeat=len(keys)):
+    for combo in itertools.product(*per_match):
         weight = 1.0
         assign = {}
         for mid, (hs, as_, w) in zip(keys, combo):
@@ -357,20 +377,27 @@ def _poisson_binomial_leq(ps: list[float], k: int) -> float:
     return sum(dist[: k + 1])
 
 
-def advance_probability(matches: list[dict]) -> dict:
+def advance_probability(matches: list[dict], use_prediction: bool = True) -> dict:
     """한국 32강 진출 확률을 정확히(해석적으로) 계산.
 
     조별 독립성을 이용: 다른 각 조 3위가 한국보다 위일 확률을 구한 뒤,
     푸아송-이항 분포로 '한국보다 위인 3위 ≤ 7팀'일 확률을 합산.
     몬테카를로보다 빠르고(샘플링 오차 0) 결정적.
+
+    use_prediction: True면 전력 예측(predictor)으로 경기 결과를 가중,
+    False면 중립(홈38/무24/원정38) 가중.
     """
     korea = find_korea(matches)
     if korea is None:
         return {"error": "한국 팀 없음"}
+    pred_map = None
+    if use_prediction:
+        from . import predictor as PR
+        pred_map = PR.outcome_probs(matches)
     tables = S.all_group_tables(matches)
     kgroup = next(m["group"] for m in matches if korea in (m["home"]["name"], m["away"]["name"]))
     others = [g for g in tables if g != kgroup]
-    other_dists = {g: _group_third_key_dist(matches, g) for g in others}
+    other_dists = {g: _group_third_key_dist(matches, g, pred_map) for g in others}
 
     # 한국 조 시나리오(승점/골득실/다득점 + 가중치)
     kgms = [m for m in matches if m["group"] == kgroup]
@@ -382,7 +409,8 @@ def advance_probability(matches: list[dict]) -> dict:
         scenarios.append((kt["rank"], (kt["points"], kt["gd"], kt["gf"]), 1.0))
     else:
         keys = [m["id"] for m in krem]
-        for combo in itertools.product(_SCORELINES_W, repeat=len(keys)):
+        per_match = [_scorelines_for((pred_map or {}).get(mid)) for mid in keys]
+        for combo in itertools.product(*per_match):
             weight = 1.0
             assign = {}
             for mid, (hs, as_, w) in zip(keys, combo):
@@ -412,7 +440,7 @@ def advance_probability(matches: list[dict]) -> dict:
             as3 += w * p_adv
 
     return {
-        "method": "exact",
+        "method": "exact+prediction" if use_prediction else "exact",
         "trials": None,
         "advance_prob": advance / total_w,
         "as_first_second_prob": as12 / total_w,

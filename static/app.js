@@ -41,7 +41,44 @@ function render() {
   renderThird();
   renderThreat();
   renderWhatif();
+  renderPredictions();
   renderAllGroups();
+}
+
+const TIER_CLASS = { "강세": "t-strong", "우세": "t-fav", "약우세": "t-slight", "백중": "t-even" };
+
+function renderPredictions() {
+  const box = $("#predList");
+  if (!box) return;
+  const preds = STATE.predictions || [];
+  box.innerHTML = "";
+  if (!preds.length) {
+    box.innerHTML = `<p class="hint">남은 경기가 없습니다.</p>`;
+    return;
+  }
+  preds.forEach((p) => {
+    const ph = Math.round(p.p_home * 100);
+    const pd = Math.round(p.p_draw * 100);
+    const pa = Math.round(p.p_away * 100);
+    const tierCls = TIER_CLASS[p.tier] || "t-even";
+    const row = el("div", "pred");
+    row.innerHTML =
+      `<div class="pred-top">` +
+      `<span class="gtag">${p.group}조</span>` +
+      `<span class="pname home">${p.home}</span>` +
+      `<span class="pvs">vs</span>` +
+      `<span class="pname away">${p.away}</span>` +
+      (p.date ? `<span class="wdate">${p.date.slice(5)}</span>` : "") +
+      `<span class="ptier ${tierCls}">${p.summary}</span>` +
+      `</div>` +
+      `<div class="pbar">` +
+      `<i class="bh" style="width:${ph}%" title="홈 승 ${ph}%"></i>` +
+      `<i class="bd" style="width:${pd}%" title="무 ${pd}%"></i>` +
+      `<i class="ba" style="width:${pa}%" title="원정 승 ${pa}%"></i>` +
+      `</div>` +
+      `<div class="pnums"><span>${p.home} ${ph}%</span><span>무 ${pd}%</span><span>${p.away} ${pa}%</span></div>`;
+    box.appendChild(row);
+  });
 }
 
 const MARK = { favorable: "○", unfavorable: "✕", pending: "?" };
