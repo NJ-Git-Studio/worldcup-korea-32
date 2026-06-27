@@ -536,6 +536,20 @@ def _match_conditions(group_matches: list[dict], rem: list[dict], korea_key: tup
             fav_results = []  # 이 경기는 결과와 무관(영향 적음)
         fav_label = " 또는 ".join(desc[r] for r in fav_results)
 
+        # 확정 판정: 이 유리한 결과가 나면, 나머지 잔여경기의 모든 결과에서
+        # 이 조 3위가 한국보다 아래로 '확정'되는가? (조 단위 자력 보장)
+        def _guarantees(res_label: str) -> bool:
+            for combo in (itertools.product(("home", "draw", "away"), repeat=len(okeys))
+                          if okeys else [()]):
+                assign = dict(zip(okeys, combo))
+                assign[target["id"]] = res_label
+                table = S.compute_group_table(_with_results(group_matches, assign))
+                if _is_above(_third_of(table), korea_key):
+                    return False
+            return True
+
+        clinch_group = bool(fav_results) and all(_guarantees(r) for r in fav_results)
+
         conditions.append(
             {
                 "match": f"{target['home']['name']} vs {target['away']['name']}",
@@ -544,6 +558,8 @@ def _match_conditions(group_matches: list[dict], rem: list[dict], korea_key: tup
                 "pivotal": pivotal,
                 "fav_result": best,
                 "fav_label": fav_label,
+                "clinch_group": clinch_group,   # True=확정, False=유리
+                "level": "확정" if clinch_group else "유리",
                 "result_prob": round(sum(p_by_res[r] for r in fav_results), 4),
                 "fav_prob_if": round(hi, 4),
                 "swing": round(swing, 4),

@@ -126,6 +126,9 @@ tr.qualify td{box-shadow:inset 3px 0 0 var(--green)}
 .bcell .favprob b{color:#ffd587; font-size:15px}
 .bcell .favres{color:#9ff0bf; font-weight:700}
 .bcell .cprob{color:#7ab8ff; font-size:11px}
+.bcell .lvl{font-size:11px; font-weight:800; padding:1px 7px; border-radius:6px}
+.bcell .lvl.lv-clinch{background:rgba(34,197,94,.2); color:#7ee0a0; border:1px solid var(--green)}
+.bcell .lvl.lv-fav{background:rgba(245,158,11,.16); color:#ffd587; border:1px solid var(--amber)}
 .bcell li.dim{color:var(--muted); opacity:.7}
 .bcell li{margin-bottom:6px}
 .bcell .mark{
