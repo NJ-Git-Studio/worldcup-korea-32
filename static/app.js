@@ -182,7 +182,8 @@ function renderBingo(b, mc) {
   (b.cells || []).forEach((c) => {
     const cell = el("div", "bcell " + c.status);
     let body = `<span class="mark">${MARK[c.status]}</span>` +
-      `<div class="gname">${c.group}조</div>`;
+      `<div class="gname">${c.group}조` +
+      (c.has_live ? ` <span class="live-tag">● 경기중</span>` : "") + `</div>`;
     if (c.third_now) {
       body += `<div class="third">현재 3위: ${c.third_now} (승점 ${c.third_now_pts}, GD ${c.third_now_gd >= 0 ? "+" : ""}${c.third_now_gd})</div>`;
     }
@@ -195,14 +196,17 @@ function renderBingo(b, mc) {
           (c.breakdown ? ` <button type="button" class="tip-hint">ⓘ 근거 보기</button>` : "") + `</div>`;
       }
       body += "<ul>" + (c.conditions || []).map((cc) => {
+        const liveB = cc.live
+          ? ` <span class="live-tag">● 경기중${cc.score ? " " + cc.score : ""}</span>`
+          : "";
         if (cc.pivotal) {
           const lvlCls = cc.clinch_group ? "lv-clinch" : "lv-fav";
-          return `<li><b>${cc.match}</b><br/>` +
+          return `<li><b>${cc.match}</b>${liveB}<br/>` +
             `→ <span class="favres">${cc.fav_label}</span> ` +
             `<span class="lvl ${lvlCls}">${cc.level || (cc.clinch_group ? "확정" : "유리")}</span><br/>` +
             `<span class="cprob">확률 : ${Math.round(cc.result_prob * 100)}%</span></li>`;
         }
-        return `<li class="dim"><b>${cc.match}</b><br/>→ 결과 영향 적음</li>`;
+        return `<li class="dim"><b>${cc.match}</b>${liveB}<br/>→ 결과 영향 적음</li>`;
       }).join("") + "</ul>";
     } else if (c.locked) {
       body += `<div class="locked-msg">${c.status === "favorable" ? "한국보다 아래 — 확정 ○" : "한국보다 위 — 확정 ✕"}</div>`;

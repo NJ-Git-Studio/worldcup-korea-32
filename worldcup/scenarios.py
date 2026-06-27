@@ -560,11 +560,16 @@ def _match_conditions(group_matches: list[dict], rem: list[dict], korea_key: tup
 
         clinch_group = bool(fav_results) and all(_guarantees(r) for r in fav_results)
 
+        is_live = target.get("status") == "live"
+        live_score = (f"{target['home_score']}-{target['away_score']}"
+                      if is_live and target.get("home_score") is not None else None)
         conditions.append(
             {
                 "match": f"{target['home']['name']} vs {target['away']['name']}",
                 "home": target["home"]["name"],
                 "away": target["away"]["name"],
+                "live": is_live,
+                "score": live_score,
                 "pivotal": pivotal,
                 "fav_result": best,
                 "fav_label": fav_label,
@@ -686,6 +691,7 @@ def bingo_board(matches: list[dict], odds_map: Optional[dict] = None) -> dict:
         cell = {
             "group": g,
             "complete": not rem,
+            "has_live": any(m.get("status") == "live" for m in rem),
             "third_now": third_now["name"] if third_now else None,
             "third_now_pts": third_now["points"] if third_now else None,
             "third_now_gd": third_now["gd"] if third_now else None,
