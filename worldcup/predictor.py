@@ -150,6 +150,9 @@ def predict_remaining(matches: list[dict], odds_map: dict | None = None) -> list
         p["group"] = m["group"]
         p["date"] = m.get("date")
         p["source"] = "odds" if override else "rating"
+        p["live"] = m.get("status") == "live"
+        if p["live"] and m.get("home_score") is not None:
+            p["score"] = f"{m['home_score']}-{m['away_score']}"
         out.append(p)
     return out
 

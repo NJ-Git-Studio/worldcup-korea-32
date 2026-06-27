@@ -79,6 +79,9 @@ def _build_state(data: dict, run_mc: bool = True) -> dict:
                 "home": m["home"]["name"],
                 "away": m["away"]["name"],
                 "status": m["status"],
+                "live": m["status"] == "live",
+                "score": (f"{m['home_score']}-{m['away_score']}"
+                          if m["status"] == "live" and m["home_score"] is not None else None),
             }
             for m in sorted(matches, key=lambda x: (x["date"] or "9999", x["group"]))
             if not ST._is_final(m)

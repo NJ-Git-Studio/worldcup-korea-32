@@ -177,6 +177,10 @@ tr.qualify td{box-shadow:inset 3px 0 0 var(--green)}
 .pred .pname{font-weight:600}
 .pred .pname.home{text-align:right}
 .pred .pvs{color:var(--muted); font-size:11px}
+.live-tag{font-size:10px; font-weight:800; color:#ff6b6b; padding:1px 7px; border-radius:6px;
+  border:1px solid #ef4444; background:rgba(239,68,68,.12); white-space:nowrap;
+  animation:livepulse 1.4s ease-in-out infinite}
+@keyframes livepulse{50%{opacity:.5}}
 .pred .src-odds,.pred .src-rating{font-size:10px; font-weight:700; padding:1px 7px; border-radius:6px}
 .src-odds{background:rgba(34,197,94,.18); color:#7ee0a0; border:1px solid var(--green)}
 .src-rating{background:#2a3340; color:var(--muted); border:1px solid var(--line)}

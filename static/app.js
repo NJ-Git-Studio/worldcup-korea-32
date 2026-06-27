@@ -82,6 +82,9 @@ function renderPredictions() {
     const srcTag = p.source === "odds"
       ? `<span class="src-odds">배당</span>`
       : `<span class="src-rating">전력</span>`;
+    const liveTag = p.live
+      ? `<span class="live-tag">● 경기중${p.score ? " " + p.score : ""}</span>`
+      : "";
     const row = el("div", "pred");
     row.innerHTML =
       `<div class="pred-top">` +
@@ -90,6 +93,7 @@ function renderPredictions() {
       `<span class="pvs">vs</span>` +
       `<span class="pname away">${p.away}</span>` +
       (p.date ? `<span class="wdate">${p.date.slice(5)}</span>` : "") +
+      liveTag +
       srcTag +
       `<span class="ptier ${tierCls}">${p.summary}</span>` +
       `</div>` +
@@ -344,10 +348,11 @@ function renderWhatif() {
   (STATE.remaining_matches || []).forEach((m) => {
     const wi = el("div", "wi");
     const md = m.date ? `<span class="wdate">${m.date.slice(5)}</span>` : "";
+    const live = m.live ? `<span class="live-tag">● 경기중${m.score ? " " + m.score : ""}</span>` : "";
     wi.innerHTML =
       `<span class="gtag">${m.group}조</span>` +
       `<span class="match">${m.home} <b>vs</b> ${m.away}</span>` +
-      md;
+      live + md;
     const sel = el("select");
     sel.dataset.id = m.id;
     sel.innerHTML =

@@ -58,8 +58,13 @@ def _teams_in_group(matches: Iterable[dict]) -> dict[str, dict]:
 
 
 def _is_final(m: dict) -> bool:
+    """경기 결과가 '확정'됐는가. 진행 중(live)은 아직 미확정으로 본다.
+
+    (live 경기의 현재 스코어는 바뀔 수 있으므로 순위·완료·경우의 수 계산에서
+    제외하고, 잔여경기로 취급한다.)
+    """
     return (
-        m.get("status") in ("finished", "live")
+        m.get("status") == "finished"
         and m.get("home_score") is not None
         and m.get("away_score") is not None
     )
