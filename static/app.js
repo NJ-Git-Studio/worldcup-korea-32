@@ -306,10 +306,14 @@ function renderThird() {
     `<th>승점</th><th>+/-</th><th>득점</th><th>진출</th></tr></thead>`;
   const tb = el("tbody");
   thirds.forEach((t) => {
-    const tr = el("tr", (t.name === korea ? "korea " : "") + (t.third_rank === 8 ? "cutline" : ""));
+    const tr = el("tr", (t.name === korea ? "korea " : "") +
+      (t.third_rank === 8 ? "cutline " : "") + (t.complete ? "" : "provisional"));
+    const stBadge = t.complete
+      ? `<span class="st-fix">확정</span>`
+      : `<span class="st-prov">잠정</span>`;
     tr.innerHTML =
       `<td class="rank">${t.third_rank}</td>` +
-      `<td class="team">${t.group}조 · ${t.name}</td>` +
+      `<td class="team">${t.group}조 · ${t.name} ${stBadge}</td>` +
       `<td><b>${t.points}</b></td><td>${t.gd >= 0 ? "+" : ""}${t.gd}</td><td>${t.gf}</td>` +
       `<td class="${t.cut ? "cut-yes" : "cut-no"}">${t.cut ? "✅" : "❌"}</td>`;
     tb.appendChild(tr);
@@ -318,6 +322,11 @@ function renderThird() {
   const box = $("#thirdTable");
   box.innerHTML = "";
   box.appendChild(tbl);
+  const provN = thirds.filter((t) => !t.complete).length;
+  box.appendChild(el("p", "hint",
+    `<span class="st-fix">확정</span> = 3경기 다 치러 승점 확정 · ` +
+    `<span class="st-prov">잠정</span> = 조 경기 남아 순위·승점 변동 가능` +
+    (provN ? ` (현재 ${provN}팀 잠정)` : "")));
 }
 
 function renderThreat() {

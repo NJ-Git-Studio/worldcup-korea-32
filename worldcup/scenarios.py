@@ -99,6 +99,9 @@ def analyze(matches: list[dict]) -> dict:
     korea = find_korea(matches)
     tables = S.all_group_tables(matches)
     thirds_now = S.rank_third_places(tables)
+    # 각 3위 팀이 속한 조가 3경기를 다 치러 승점이 '확정'됐는지 표시
+    for t in thirds_now:
+        t["complete"] = S.group_complete(matches, t["group"])
 
     if korea is None:
         return {"error": "데이터에서 한국 팀을 찾지 못했습니다.", "third_table": thirds_now}
