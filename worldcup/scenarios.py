@@ -534,7 +534,17 @@ def _match_conditions(group_matches: list[dict], rem: list[dict], korea_key: tup
             fav_results = [r for r in ("home", "draw", "away") if cond_fav[r] >= hi - 0.05]
         else:
             fav_results = []  # 이 경기는 결과와 무관(영향 적음)
-        fav_label = " 또는 ".join(desc[r] for r in fav_results)
+
+        hn, an = target["home"]["name"], target["away"]["name"]
+        if len(fav_results) == 1:
+            fav_label = {"home": f"{hn} 승이면", "draw": "무승부면",
+                         "away": f"{an} 승이면"}[fav_results[0]]
+        elif len(fav_results) == 2:
+            excl = next(r for r in ("home", "draw", "away") if r not in fav_results)
+            fav_label = {"home": f"{hn} 승이 아니면", "draw": "무승부가 아니면",
+                         "away": f"{an} 승이 아니면"}[excl]
+        else:
+            fav_label = ""
 
         # 확정 판정: 이 유리한 결과가 나면, 나머지 잔여경기의 모든 결과에서
         # 이 조 3위가 한국보다 아래로 '확정'되는가? (조 단위 자력 보장)

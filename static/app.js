@@ -147,7 +147,7 @@ function renderBingo(b, mc) {
         if (cc.pivotal) {
           const lvlCls = cc.clinch_group ? "lv-clinch" : "lv-fav";
           return `<li><b>${cc.match}</b><br/>` +
-            `→ <span class="favres">${cc.fav_label}</span> 이면 ` +
+            `→ <span class="favres">${cc.fav_label}</span> ` +
             `<span class="lvl ${lvlCls}">${cc.level || (cc.clinch_group ? "확정" : "유리")}</span><br/>` +
             `<span class="cprob">확률 : ${Math.round(cc.result_prob * 100)}%</span></li>`;
         }
