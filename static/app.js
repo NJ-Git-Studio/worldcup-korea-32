@@ -51,6 +51,24 @@ function renderPredictions() {
   const box = $("#predList");
   if (!box) return;
   const preds = STATE.predictions || [];
+  // 출처 상태/제목
+  const om = STATE.odds_meta || {};
+  const note = $("#predSrcNote");
+  const status = $("#predStatus");
+  const usingOdds = preds.some((p) => p.source === "odds");
+  if (note) note.textContent = usingOdds ? "(실제 배당 + 전력 모델)" : "(전력 모델 추정 · 참고용)";
+  if (status) {
+    if (usingOdds) {
+      const n = preds.filter((p) => p.source === "odds").length;
+      status.innerHTML =
+        `<span class="src-odds">배당</span> 실제 북메이커 배당 반영 ${n}경기` +
+        (om.remaining ? ` · 무료 API 잔여 ${om.remaining}회` : "");
+    } else if (om.has_key === false) {
+      status.innerHTML = `배당 API 키가 없어 전력 모델로 추정 중입니다.`;
+    } else {
+      status.innerHTML = `현재 배당을 불러오지 못해 전력 모델로 추정 중입니다.`;
+    }
+  }
   box.innerHTML = "";
   if (!preds.length) {
     box.innerHTML = `<p class="hint">남은 경기가 없습니다.</p>`;
@@ -61,6 +79,9 @@ function renderPredictions() {
     const pd = Math.round(p.p_draw * 100);
     const pa = Math.round(p.p_away * 100);
     const tierCls = TIER_CLASS[p.tier] || "t-even";
+    const srcTag = p.source === "odds"
+      ? `<span class="src-odds">배당</span>`
+      : `<span class="src-rating">전력</span>`;
     const row = el("div", "pred");
     row.innerHTML =
       `<div class="pred-top">` +
@@ -69,6 +90,7 @@ function renderPredictions() {
       `<span class="pvs">vs</span>` +
       `<span class="pname away">${p.away}</span>` +
       (p.date ? `<span class="wdate">${p.date.slice(5)}</span>` : "") +
+      srcTag +
       `<span class="ptier ${tierCls}">${p.summary}</span>` +
       `</div>` +
       `<div class="pbar">` +

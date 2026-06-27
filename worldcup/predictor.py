@@ -128,28 +128,38 @@ def predict_match(home: str, away: str,
     }
 
 
-def predict_remaining(matches: list[dict]) -> list[dict]:
-    """미결정(점수 없는) 경기들에 대한 예측 목록 (날짜순)."""
+def predict_remaining(matches: list[dict], odds_map: dict | None = None) -> list[dict]:
+    """미결정(점수 없는) 경기들에 대한 예측 목록 (날짜순).
+
+    odds_map: {match_id: (p_home,p_draw,p_away)} 실제 배당 확률이 있으면 우선 사용.
+    """
     from .standings import _is_final
 
+    odds_map = odds_map or {}
     out = []
     for m in sorted(matches, key=lambda x: (x.get("date") or "9999", x["group"])):
         if _is_final(m):
             continue
+        override = odds_map.get(m["id"])
         p = predict_match(
             m["home"]["name"], m["away"]["name"],
             m["home"].get("code"), m["away"].get("code"),
+            override=override,
         )
         p["id"] = m["id"]
         p["group"] = m["group"]
         p["date"] = m.get("date")
+        p["source"] = "odds" if override else "rating"
         out.append(p)
     return out
 
 
-def outcome_probs(matches: list[dict]) -> dict[str, tuple]:
-    """경기 id -> (p_home, p_draw, p_away). 진출확률 가중에 사용."""
+def outcome_probs(matches: list[dict], odds_map: dict | None = None) -> dict[str, tuple]:
+    """경기 id -> (p_home, p_draw, p_away). 진출확률 가중에 사용.
+
+    배당이 있으면 배당 확률, 없으면 전력 레이팅 확률.
+    """
     pm = {}
-    for p in predict_remaining(matches):
+    for p in predict_remaining(matches, odds_map):
         pm[p["id"]] = (p["p_home"], p["p_draw"], p["p_away"])
     return pm

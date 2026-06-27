@@ -53,7 +53,11 @@ git push -u origin main
   서버는 60초(`WC_STATE_TTL`) 캐시를 쓰므로, 최신 결과는 페이지의
   **🔄 최신 데이터 갱신** 버튼을 누르면 반영됩니다.
 - **설정 변경**: Render 대시보드 → 서비스 → **Environment** 에서
-  `WC_TRIALS`(시뮬레이션 횟수), `WC_PREFER`(데이터 소스) 등을 바꿀 수 있습니다.
+  `WC_PREFER`(데이터 소스) 등을 바꿀 수 있습니다.
+- **실제 배당 켜기(선택)**: 같은 **Environment** 화면에서 **Add Environment Variable** →
+  Key `ODDS_API_KEY`, Value 에 The Odds API 키를 넣고 저장하면, 배포된 사이트의
+  예측·진출확률이 실제 배당 기반으로 바뀝니다. (키는 코드/저장소에 넣지 마세요 —
+  반드시 이 환경변수로만 넣습니다.)
 - **코드 수정 후 재배포**: 로컬에서 수정 → `git push` 하면 Render가 자동으로 다시 배포합니다.
 
 ---

@@ -377,7 +377,8 @@ def _poisson_binomial_leq(ps: list[float], k: int) -> float:
     return sum(dist[: k + 1])
 
 
-def advance_probability(matches: list[dict], use_prediction: bool = True) -> dict:
+def advance_probability(matches: list[dict], use_prediction: bool = True,
+                        odds_map: Optional[dict] = None) -> dict:
     """한국 32강 진출 확률을 정확히(해석적으로) 계산.
 
     조별 독립성을 이용: 다른 각 조 3위가 한국보다 위일 확률을 구한 뒤,
@@ -393,7 +394,7 @@ def advance_probability(matches: list[dict], use_prediction: bool = True) -> dic
     pred_map = None
     if use_prediction:
         from . import predictor as PR
-        pred_map = PR.outcome_probs(matches)
+        pred_map = PR.outcome_probs(matches, odds_map)
     tables = S.all_group_tables(matches)
     kgroup = next(m["group"] for m in matches if korea in (m["home"]["name"], m["away"]["name"]))
     others = [g for g in tables if g != kgroup]

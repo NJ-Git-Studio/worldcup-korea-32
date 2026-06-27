@@ -86,11 +86,12 @@
 
     <!-- 남은 경기 전력 예측 -->
     <section class="card">
-      <h2>🔮 남은 경기 전력 예측 <small>(전력 레이팅 기반 추정 · 참고용)</small></h2>
+      <h2>🔮 남은 경기 승부 예측 <small id="predSrcNote">(참고용)</small></h2>
+      <div id="predStatus" class="pred-status"></div>
       <div id="predList" class="pred-list"></div>
       <p class="hint">
         막대는 좌(홈 승)·중(무)·우(원정 승) 확률입니다. 등급: 강세 &gt; 우세 &gt; 약우세 &gt; 백중.
-        실제 배당이 아닌 팀 전력 레이팅(FIFA 랭킹·Elo 근사) 기반 추정이라 참고용입니다.
+        <b>배당</b> 표시는 실제 북메이커 배당(마진 제거·평균), <b>전력</b> 표시는 팀 레이팅(FIFA 랭킹·Elo 근사) 추정입니다.
       </p>
     </section>
 

@@ -15,3 +15,6 @@ manual_matches.json
 .vscode/
 .idea/
 *.log
+
+# 배당 API 키/캐시 (커밋 금지)
+odds_api_key.txt
