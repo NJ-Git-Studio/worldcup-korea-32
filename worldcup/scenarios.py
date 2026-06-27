@@ -218,10 +218,72 @@ def analyze(matches: list[dict]) -> dict:
         )
     result["verdict"] = verdict
     result["verdict_text"] = conf
+    result["verdict_text_plain"] = conf  # 담백한 원본(혹시 필요할 때)
     result["guaranteed_above"] = guaranteed_above
     result["possible_above"] = possible_above
 
     return result
+
+
+# ---- 위트 문구 (홍명보 & K-축구 자학개그) -------------------------------
+_FLAVOR = {
+    "QUALIFIED": [
+        "32강 진출 확정! 홍명보 “제가 다 계획했습니다” (계획엔 없었음)",
+        "올라갔다. 경우의 수 엑셀 닫고 치맥 켜세요 🍗",
+        "자력이든 타력이든 16강은 16강. 홍명보 어깨 1cm 폄.",
+        "이번 판은 홍명보도 못 말아먹었다. 진출 확정 🎉",
+    ],
+    "CLINCHED": [
+        "수학적으로 진출 확정. 이제 남은 건 16강에서 또 경우의 수 따지기.",
+        "올라간다. 정몽규도 박수 칠 수밖에 없는 그림.",
+        "3위 와일드카드 확보! 남의 손 빌렸지만 결과는 16강.",
+    ],
+    "CONTENDING_HI": [
+        "진출 확률 우세. 남은 변수는 상대 팀과… 홍명보 교체 카드.",
+        "8부 능선은 넘었다. 마지막은 K-정신력으로 메운다.",
+        "거의 다 왔다. 김칫국은 끓이되 약불로.",
+    ],
+    "CONTENDING_MID": [
+        "딱 동전 던지기. 앞면 16강, 뒷면 ‘아쉽지만 값진 경험’.",
+        "반반의 경우의 수. 홍명보의 용병술이냐, 상대의 자비냐.",
+        "50:50. 지금부터는 실력보다 기도 메타 🙏",
+    ],
+    "CONTENDING_LO": [
+        "자력진출? 그건 강팀 얘기. 우리는 ‘엄친아 3위들’ 미끄러지길 비는 중.",
+        "운명을 남의 발끝에 맡긴 한국. 홍명보는 오늘도 남의 경기 중계를 본다.",
+        "경우의 수 계산기가 뜨거워지는 중. 정몽규는 강 건너 불구경 🔥",
+    ],
+    "CONTENDING_VLO": [
+        "솔직히 어렵다. 그래도 K-축구는 늘 경우의 수에서 산소호흡기를 찾았다.",
+        "기적의 수 모드 ON. 홍명보 “끝날 때까진 끝난 게 아닙니다”(빛바랜 명언).",
+        "남들 다 져주면 된다. 쉽죠? (안 쉬움)",
+    ],
+    "ELIMINATED": [
+        "탈락… 경우의 수 계산기 반납하고 짐 싸세요.",
+        "끝났다. 홍명보 ‘책임지겠습니다’ → 축협 ‘저흰 안 바꿔요’ 평행이론.",
+        "이건 경우의 수가 아니라 기적의 수였다. 다음 월드컵에서 만나요.",
+    ],
+}
+
+
+def flavor_text(verdict: str, prob: Optional[float] = None) -> str:
+    """판정/확률에 따른 위트 문구. prob가 바뀌면 문구도 바뀐다(갱신 반영)."""
+    if verdict in ("QUALIFIED", "CLINCHED", "ELIMINATED"):
+        key = verdict
+    else:  # CONTENDING — 확률대로 톤 분기
+        p = prob if prob is not None else 0.5
+        if p >= 0.65:
+            key = "CONTENDING_HI"
+        elif p >= 0.45:
+            key = "CONTENDING_MID"
+        elif p >= 0.25:
+            key = "CONTENDING_LO"
+        else:
+            key = "CONTENDING_VLO"
+    pool = _FLAVOR.get(key) or _FLAVOR["CONTENDING_MID"]
+    # 확률(또는 0)로 결정적 인덱스 — 같은 상황이면 같은 문구, 바뀌면 교체
+    idx = int(round((prob if prob is not None else 0.5) * 1000)) % len(pool)
+    return pool[idx]
 
 
 # ---- 몬테카를로 확률 ----------------------------------------------------

@@ -91,6 +91,9 @@ def _build_state(data: dict, run_mc: bool = True) -> dict:
         # 몬테카를로 대신 조별 독립성을 이용한 정확(해석적) 확률 — 빠르고 결정적
         # 배당(odds_map)이 있으면 전력 가중에 배당 확률을 우선 반영
         payload["probability"] = SC.advance_probability(matches, odds_map=odds_map)
+        # 히어로 문구를 홍명보 위트 버전으로 교체(확률에 따라 톤 변화)
+        prob = payload["probability"].get("advance_prob")
+        analysis["verdict_text"] = SC.flavor_text(analysis.get("verdict"), prob)
     return payload
 
 
@@ -131,7 +134,10 @@ def api_whatif():
                 hs, as_ = SC._RESULT_SCORELINES[val]
             nm["home_score"], nm["away_score"], nm["status"] = hs, as_, "finished"
         sim.append(nm)
-    return jsonify({"analysis": SC.analyze(sim), "bingo": SC.bingo_board(sim)})
+    wf = SC.analyze(sim)
+    prob = SC.advance_probability(sim).get("advance_prob")
+    wf["verdict_text"] = SC.flavor_text(wf.get("verdict"), prob)
+    return jsonify({"analysis": wf, "bingo": SC.bingo_board(sim)})
 
 
 if __name__ == "__main__":
